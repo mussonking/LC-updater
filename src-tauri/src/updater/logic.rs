@@ -11,7 +11,11 @@ pub struct UpdateManifest {
 }
 
 pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) -> Result<(), String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true) // Allow self-signed/dev certificates just in case
+        .build()
+        .map_err(|e| e.to_string())?;
+        
     let zip_res = client.get(&manifest.download_url).send().await.map_err(|e| e.to_string())?;
     let bytes = zip_res.bytes().await.map_err(|e| e.to_string())?;
     

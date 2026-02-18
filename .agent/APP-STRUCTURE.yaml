@@ -1,0 +1,123 @@
+# APP-STRUCTURE.yaml
+# leclasseur-updater project architecture
+# format: LLM-OPTIMIZED (ref: .agent/llm-optimized.yaml)
+
+# =============================================================================
+# PROJECT_METADATA
+# =============================================================================
+
+project:
+  name: "leclasseur-updater"
+  type: "tauri_v2_desktop_app"
+  primary_language: ["rust", "typescript"]
+  framework_stack:
+    frontend: "react_vite"
+    backend: "rust_tauri"
+    styling: "vanilla_css"
+    icons: "lucide_react"
+
+# =============================================================================
+# ARCHITECTURE_OVERVIEW
+# =============================================================================
+
+architecture:
+  pattern: "client_side_background_updater"
+  local_storage_strategy: "version_txt_tracking"
+  distribution_platform: "windows_msi"
+
+  components:
+    frontend:
+      path: "src/"
+      main_view: "src/components/Updater/Updater.tsx"
+      state_management: "react_useState_useEffect"
+    backend:
+      path: "src-tauri/src/"
+      core_logic: "src-tauri/src/updater/logic.rs"
+      tauri_commands: "src-tauri/src/updater/commands.rs"
+      websocket_server: "src-tauri/src/updater/ws_server.rs"
+
+# =============================================================================
+# TAURI_API_COMMANDS (INVOKE)
+# =============================================================================
+
+tauri_api:
+  get_install_path:
+    description: "calculates_and_creates_local_extension_dir"
+    returns: "string_path"
+    logic: "app_data_dir/LeClasseurExtension"
+
+  open_chrome_extensions:
+    description: "launches_chrome_to_extensions_page"
+    method: "windows_cmd_start_chrome"
+    url: "chrome://extensions/"
+
+  check_and_update:
+    description: "polls_manifest_downloads_if_version_differs"
+    params:
+      manifest_url: "remote_json_url"
+    workflow:
+      - "fetch_manifest"
+      - "compare_local_version_txt"
+      - "if_diff_download_zip"
+      - "extract_to_install_path"
+      - "broadcast_ws_reload"
+
+  trigger_manual_reload:
+    description: "manual_trigger_of_websocket_reload_signal"
+    action: "broadcast_ws_reload_to_all_clients"
+
+# =============================================================================
+# BACKEND_INTERNALS (RUST)
+# =============================================================================
+
+backend_internals:
+  websocket_server:
+    port: 8888
+    host: "127.0.0.1"
+    message_format: '{"action": "RELOAD"}'
+    failure_handling: "graceful_eprintln_no_crash"
+
+  update_logic:
+    manifest_fields: ["version", "download_url"]
+    version_tracking_file: "version.txt"
+    ssl_policy: "danger_accept_invalid_certs_true"
+    extraction: "zip_archive_to_local_path"
+
+# =============================================================================
+# FRONTEND_WORKFLOW (REACT)
+# =============================================================================
+
+frontend_workflow:
+  init:
+    - "invoke_get_install_path"
+    - "invoke_check_and_update_initial"
+
+  polling:
+    frequency: "10_minutes"
+    command: "invoke_check_and_update"
+
+  ui_steps:
+    step_1: "initial_setup_and_path_display"
+    step_2: "developer_mode_tutorial"
+    step_3: "load_unpacked_tutorial"
+    step_4: "background_monitoring_active"
+
+# =============================================================================
+# DEPLOYMENT_SCRIPTS
+# =============================================================================
+
+scripts:
+  push_update_sh:
+    path: "push-update.sh"
+    features: ["auto_increment_patch", "generate_version_json", "deploy_to_z_drive"]
+    target_path: "Z:/static/extension/"
+
+# =============================================================================
+# META
+# =============================================================================
+
+meta:
+  version: 1.1
+  date: 2026-01-01
+  standard: "llm_optimized"
+  reference: ".agent/rules.md"

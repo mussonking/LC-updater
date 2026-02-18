@@ -1,0 +1,107 @@
+# DESKTOP-STRUCTURE.yaml
+# leclasseur-desktop project architecture
+# format: LLM-OPTIMIZED (ref: .agent/llm-optimized.yaml)
+
+# =============================================================================
+# PROJECT_METADATA
+# =============================================================================
+
+project:
+  name: "leclasseur-desktop"
+  type: "tauri_v2_desktop_agent"
+  product_name: "LeClasseur Desktop"
+  identifier: "ca.leclasseur.desktop"
+  primary_language: ["rust", "javascript"]
+  framework_stack:
+    frontend: "vanilla_js_html_css"
+    backend: "rust_tauri_v2"
+    concurrency: "tokio_rwlock_mpsc"
+    logging: "simplelog_terminal_file"
+
+# =============================================================================
+# ARCHITECTURE_OVERVIEW
+# =============================================================================
+
+architecture:
+  pattern: "bidirectional_folder_sync_agent"
+  core_feature: "windows_file_id_persistence"
+  sync_engine: "event_driven_with_debouncing"
+
+  modules:
+    auth: "src-tauri/src/auth/mod.rs" (token_management_auto_login)
+    api: "src-tauri/src/api/mod.rs" (s3_upload_client)
+    sync:
+      watcher: "src-tauri/src/sync/watcher.rs" (recursive_notify_debounced)
+      mapper: "src-tauri/src/sync/mapper.rs" (path_to_server_id_mapping)
+      queue: "src-tauri/src/sync/queue.rs" (upload_job_management)
+    ipc: "src-tauri/src/ipc/mod.rs" (frontend_communication)
+    tray: "src-tauri/src/tray/mod.rs" (minimize_to_system_tray)
+
+# =============================================================================
+# DATA_MODELS & PERSISTENCE
+# =============================================================================
+
+persistence:
+  settings: "tauri_plugin_store (settings.json)"
+  folder_mapping: ".leclasseur/sync_v2.json (FileId -> Metadata)"
+  local_markers: ".leclasseur-folder-id (hidden_per_linked_folder)"
+  logs: "Documents/leclasseur_desktop.log"
+
+data_models:
+  file_id: "u64 (volume_serial + file_index)"
+  sync_status: ["Synced", "PendingUpload", "PendingDownload", "Conflict", "ModifiedLocal"]
+  tracked_item: ["server_id", "file_id", "sha256", "last_sync", "local_mtime"]
+
+# =============================================================================
+# TAURI_IPC_COMMANDS (FRONTEND_EXPOSED)
+# =============================================================================
+
+tauri_commands:
+  authentication:
+    - "login(email, password)"
+    - "logout()"
+    - "is_logged_in()"
+    - "get_user_info()"
+  sync_configuration:
+    - "set_sync_folder(path)"
+    - "get_sync_folder()"
+    - "link_folder(local_path, dossier_id, dossier_name)"
+    - "get_linked_folders()"
+  sync_execution:
+    - "start_sync()"
+    - "pause_sync()"
+    - "scan_all_linked_folders()"
+    - "get_sync_status()"
+    - "batch_upload(files_list)"
+  system:
+    - "get_settings()"
+    - "save_settings(settings)"
+    - "open_admin_panel() (Embedded Webview with auto-login)"
+
+# =============================================================================
+# CRITICAL_LOGIC_FLOWS
+# =============================================================================
+
+logic_flows:
+  file_watching:
+    - "notify_event_detected"
+    - "debounce_500ms"
+    - "calculate_file_id"
+    - "lookup_in_mapper_v2"
+    - "if_deleted_check_rename_heuristic"
+    - "update_sync_status_pending_upload"
+  
+  batch_upload:
+    - "concurrency_limit: 5"
+    - "stream_buffering: buffer_unordered"
+    - "progress_emission: 'upload-progress' event"
+
+# =============================================================================
+# META
+# =============================================================================
+
+meta:
+  version: 1.0
+  date: 2026-01-01
+  standard: "llm_optimized"
+  project_root: "leclasseur-desktop/"

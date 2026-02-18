@@ -1,0 +1,443 @@
+# LLM-OPTIMIZED.yaml
+# Standard for ALL project documentation
+# FOR LLM CONSUMPTION ONLY - ZERO HUMAN READERS
+# Reference: user points to this file when requesting document updates
+
+# =============================================================================
+# MASTER RULES - APPLIES TO ALL DOCUMENTS
+# =============================================================================
+
+master_rules:
+
+  fundamental_principle: "machine_readable_first_human_unreadable_acceptable"
+
+  no_emojis: true
+  no_prose: true
+  no_ambiguity: true
+
+  target_audience: "future_llm_models_only"
+  human_readers: 0
+
+  language_standard: "english_only"
+  rule: "all_documents_created_and_maintained_in_english"
+  reason: "ensure_consistency_for_llm_models_worldwide"
+
+# =============================================================================
+# YAML STRUCTURE STANDARDS
+# =============================================================================
+
+yaml_structure:
+
+  root_level:
+    description: "top_level_keys_define_document_sections"
+    format: "snake_case_underscores_only"
+    pattern: "section_name_not_SectionName"
+
+  nesting:
+    max_depth: "unlimited_but_must_be_logical"
+    organization: "hierarchical_by_concept_not_by_visual_appeal"
+    rule: "each_level_must_answer_previous_level_question"
+
+  keys_format:
+    characters: "lowercase_snake_case_only"
+    allowed: "[a-z0-9_]"
+    forbidden: ["CamelCase", "UPPERCASE", "hyphen", "dot", "space"]
+    examples:
+      correct: ["git_branch", "auto_commit_local_snapshots", "if_branch_is_develop"]
+      wrong: ["gitBranch", "GIT_BRANCH", "git-branch", "git.branch"]
+
+  values_format:
+    strings: "lowercase_with_underscores_not_spaces"
+    booleans: "true or false only"
+    numbers: "plain_digits_no_formatting"
+    lists: "yaml_arrays_one_per_line"
+    commands: "exact_copy_no_variation"
+
+# =============================================================================
+# LISTS - ATOMIC AND PARSEABLE
+# =============================================================================
+
+lists_standard:
+
+  structure: "each_item_one_concept"
+
+  forbidden:
+    - "multi_line_items"
+    - "prose_explanations_in_items"
+    - "nested_bullet_points"
+    - "semicolons_or_periods"
+
+  correct_format: |
+    my_list:
+      - "item_one"
+      - "item_two"
+      - "item_three"
+
+  wrong_format: |
+    my_list:
+      - "item one (with explanation here)"
+      - "item two; also this; and that"
+
+  complex_items:
+    if_multiple_attributes: "use_nested_objects_not_lists"
+    pattern: |
+      items:
+        item_1:
+          attribute_a: "value_a"
+          attribute_b: "value_b"
+        item_2:
+          attribute_a: "value_a"
+          attribute_b: "value_b"
+
+# =============================================================================
+# CONDITIONAL/BRANCHING LOGIC
+# =============================================================================
+
+conditional_statements:
+
+  format: "use if_ prefix for conditionals"
+
+  examples:
+    - "if_branch_is_develop: description"
+    - "if_no_push_to_github: [list_of_consequences]"
+    - "if_switch_branch_locally: description"
+
+  structure: |
+    my_condition:
+      if_case_a: "outcome_a"
+      if_case_b: "outcome_b"
+      if_case_c: "outcome_c"
+
+# =============================================================================
+# COMMANDS AND CODE
+# =============================================================================
+
+commands_and_code:
+
+  format: "exact_strings_no_paraphrasing"
+
+  for_bash_commands:
+    key_name: "command_name_cmd"
+    value: "exact shell command as user would type"
+    examples:
+      - "git_status_cmd: git status"
+      - "git_commit_cmd: git commit -m 'message'"
+      - "recovery_cmd: git --git-dir=/path --work-tree=/path show <commit>:<file>"
+
+  for_file_paths:
+    key_name: "descriptive_name_path or descriptive_name_location"
+    value: "absolute_path_only"
+    examples:
+      - "backup_git_location: /home/mad/.git-backup/leclasseur/"
+      - "real_git_location: /home/mad/leclasseur/.git/"
+
+  for_urls:
+    key_name: "descriptive_name_url or descriptive_name_remote"
+    value: "full_url_with_protocol"
+
+# =============================================================================
+# ATTRIBUTE DOCUMENTATION PATTERN
+# =============================================================================
+
+attribute_pattern:
+
+  when_describing_something: |
+    my_entity:
+      attribute_1: "value or description"
+      attribute_2: "value"
+      attribute_3: "value"
+      consequences:
+        - "outcome_one"
+        - "outcome_two"
+      commands:
+        command_a: "exact command"
+        command_b: "exact command"
+
+  why_this_works: "llms can traverse and query any level without prose interpretation"
+
+# =============================================================================
+# DOCUMENT TYPES - SPECIFIC STANDARDS
+# =============================================================================
+
+document_types:
+
+  architecture_documents:
+    purpose: "describe system design and critical decisions"
+    key_sections:
+      - "overview (what is it)"
+      - "components (what parts)"
+      - "critical_detail (what's dangerous)"
+      - "behavior (how it works)"
+      - "rules (what never to do)"
+    example_file: "GIT-SYSTEM.yaml"
+
+  plan_documents:
+    purpose: "step_by_step implementation instructions"
+    required_sections:
+      - "task_name"
+      - "steps (ordered list)"
+      - "dependencies (what must exist first)"
+      - "success_criteria (how to verify it works)"
+      - "critical_rules (what breaks if violated)"
+    format: |
+      plan:
+        task_name: "description_of_what_to_build"
+        dependencies:
+          - "prerequisite_one"
+          - "prerequisite_two"
+        steps:
+          step_1: "action"
+          step_2: "action"
+          step_3: "action"
+        success_criteria:
+          - "verifiable_outcome_one"
+          - "verifiable_outcome_two"
+        critical_rules:
+          - "rule_that_breaks_everything_if_violated"
+
+  todo_documents:
+    purpose: "track task completion status"
+    required_fields:
+      - "content (what to do in imperative)"
+      - "status (pending, in_progress, completed)"
+      - "active_form (present continuous of content)"
+    format: |
+      todos:
+        - content: "Fix authentication bug"
+          status: "in_progress"
+          active_form: "Fixing authentication bug"
+        - content: "Run test suite"
+          status: "pending"
+          active_form: "Running test suite"
+
+  debug_documents:
+    purpose: "document bugs, errors, symptoms, and solutions"
+    required_sections:
+      - "incident_name"
+      - "symptom (what went wrong)"
+      - "root_cause (why it happened)"
+      - "solution (how to fix)"
+      - "prevention (how to avoid next time)"
+    format: |
+      debug_incident:
+        incident_name: "cart_zombie_documents_issue"
+        symptom: "documents from failed uploads still in cart"
+        root_cause: "CLEAR_CART not called on error"
+        solution: "added CLEAR_CART to all error handlers"
+        prevention: "always clear cart on upload failure"
+
+  config_documents:
+    purpose: "define system configuration and values"
+    format: |
+      config_section:
+        setting_name: "value"
+        setting_group:
+          nested_setting: "value"
+          nested_setting_2: "value"
+    note: "use for .yaml files that are read programmatically"
+
+# =============================================================================
+# DOCUMENT UPDATE PROTOCOL - CRITICAL RULE
+# =============================================================================
+
+document_update_protocol:
+
+  fundamental_rule: "NEVER rewrite_entire_document"
+
+  update_method:
+    step_1: "add_only_relevant_new_information"
+    step_2: "update_existing_entries_if_changed"
+    step_3: "check_for_duplicates_and_remove"
+    step_4: "verify_no_sections_were_summarized"
+
+  forbidden:
+    - "rewriting_entire_file"
+    - "removing_existing_information_unless_replaced"
+    - "summarizing_existing_sections"
+    - "reorganizing_structure"
+    - "adding_filler_content"
+
+  allowed:
+    - "adding_new_keys_values"
+    - "updating_changed_values"
+    - "removing_duplicates"
+    - "replacing_outdated_entries_with_new_ones"
+
+  example_correct:
+    before: |
+      git_rules:
+        rule_1: "value_1"
+        rule_2: "value_2"
+
+    update_request: "add git_rule_3"
+
+    after: |
+      git_rules:
+        rule_1: "value_1"
+        rule_2: "value_2"
+        rule_3: "value_3"
+
+  example_wrong:
+    before: |
+      git_rules:
+        rule_1: "detailed explanation of rule one"
+        rule_2: "detailed explanation of rule two"
+
+    wrong_update: |
+      git_rules:
+        rule_1_and_2_summary: "both rules are about git safety"
+        rule_3: "new rule"
+
+    why_wrong: "removed existing detailed entries and replaced with summary"
+
+  duplicate_check:
+    when_updating: "always search for duplicate_key or duplicate_value"
+    action: "remove exact_duplicates keep_first_occurrence"
+    verify: "document_has_no_duplicate_entries"
+
+# =============================================================================
+# ANTI-PATTERNS - NEVER DO THIS
+# =============================================================================
+
+anti_patterns:
+
+  never_use_emojis:
+    examples_wrong: ["🚫 never", "✅ always", "⭐ important"]
+    why: "emojis break parsing reliability"
+
+  never_use_prose:
+    examples_wrong:
+      - "This is a long explanation of what this means"
+      - "When you do X, it will cause Y because..."
+      - "The reason is that..."
+    why: "prose requires semantic understanding not suitable for rigid parsing"
+
+  never_use_human_friendly_comments:
+    examples_wrong:
+      - "# This is a helpful note for readers"
+      - "# Remember to always do this first!"
+    rule: "comments only for code sections not for documentation"
+
+  never_create_ambiguous_keys:
+    examples_wrong:
+      - "type: backup_git (what type? container type? file type?)"
+      - "status: active (active how? running? enabled?)"
+    rule: "key names must be so specific that only one interpretation exists"
+
+  never_mix_data_types_in_same_list:
+    examples_wrong:
+      - "values: [true, 'string_value', 42]"
+    rule: "homogeneous_lists_only"
+
+  never_use_custom_delimiters:
+    examples_wrong:
+      - "value: item1 | item2 | item3"
+      - "value: item1, item2, item3"
+    rule: "use yaml arrays for lists always"
+
+  never_create_hierarchy_for_visual_appeal:
+    rule: "hierarchy_must_represent_actual_semantic_relationships"
+    example_wrong: |
+      pretty_but_wrong:
+        level1:
+          level2:
+            level3: "too many levels for no reason"
+    example_right: |
+      correct:
+        entity:
+          property: "value"
+          nested_entity:
+            property: "value"
+
+# =============================================================================
+# VALIDATION CHECKLIST
+# =============================================================================
+
+validation_before_commit:
+
+  for_any_yaml_document:
+    - "no_emoji check"
+    - "no_multiline_values check (unless explicitly allowed)"
+    - "all_keys snake_case check"
+    - "no_prose check"
+    - "all_commands exact_copy check"
+    - "all_paths absolute check"
+    - "no_spaces_in_values check (use underscores)"
+    - "hierarchy_makes_sense check"
+    - "can_llm_parse_this check (would regex work?)"
+
+# =============================================================================
+# EXAMPLES - MINIMAL BUT COMPLETE
+# =============================================================================
+
+example_minimal_architecture_doc: |
+  # Example: simplified architecture doc
+
+  system:
+    name: "example_system"
+    purpose: "do_something_specific"
+    critical_rule: "never_do_this_dangerous_thing"
+
+  components:
+    component_a:
+      location: "/path/to/component"
+      purpose: "what_it_does"
+      managed_by: "service_or_process"
+    component_b:
+      location: "/path/to/component"
+      purpose: "what_it_does"
+      managed_by: "service_or_process"
+
+  rules:
+    never_allowed:
+      dangerous_action:
+        command: "exact command that must be blocked"
+        consequence: "what_happens_if_violated"
+    always_allowed:
+      safe_action:
+        command: "exact safe command"
+        when: "anytime"
+
+example_minimal_plan_doc: |
+  # Example: simplified plan doc
+
+  plan:
+    task_name: "fix_the_bug"
+    dependencies:
+      - "environment_variable_set"
+      - "database_running"
+    steps:
+      step_1: "identify_root_cause_via_logs"
+      step_2: "modify_source_code_file"
+      step_3: "run_test_suite"
+    success_criteria:
+      - "tests_pass"
+      - "no_regressions"
+    critical_rules:
+      - "never_modify_production_data"
+
+# =============================================================================
+# SUMMARY - THE PHILOSOPHY
+# =============================================================================
+
+philosophy:
+
+  core_idea: "documents_are_for_machines_not_humans"
+
+  design_principle: |
+    If an LLM reading this document 5 years from now
+    (without you explaining it verbally) could:
+    1. Understand every fact accurately
+    2. Parse every structure without ambiguity
+    3. Execute every instruction precisely
+    Then the document is well-designed.
+
+  if_human_finds_it_hard_to_read: "that_is_success_not_failure"
+
+  if_human_reads_document: "they are doing something wrong"
+
+# =============================================================================
+# END OF STANDARD
+# =============================================================================
+
+end_marker: "LLM-OPTIMIZED.yaml is complete and binding for all project docs"

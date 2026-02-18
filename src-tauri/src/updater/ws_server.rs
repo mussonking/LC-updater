@@ -8,7 +8,16 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 pub type WsClients = Arc<Mutex<Vec<futures_util::stream::SplitSink<tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>, Message>>>>;
 
 pub async fn start_ws_server(clients: WsClients) {
-    let listener = TcpListener::bind("127.0.0.1:8888").await.expect("Failed to bind");
+    let addr = "127.0.0.1:8888";
+    let listener = match TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Failed to bind WebSocket server to {}: {}. Extension reload won't work.", addr, e);
+            return;
+        }
+    };
+    
+    println!("WebSocket server started on {}", addr);
     while let Ok((stream, _)) = listener.accept().await {
         let clients = Arc::clone(&clients);
         tokio::spawn(async move {
@@ -16,6 +25,8 @@ pub async fn start_ws_server(clients: WsClients) {
                 let (write, mut read) = ws_stream.split();
                 clients.lock().await.push(write);
                 while let Some(_) = read.next().await {}
+                // When connection closes, we don't automatically remove here, 
+                // broadcast_reload handles dead connections.
             }
         });
     }
@@ -33,6 +44,6 @@ pub async fn broadcast_reload(clients: &WsClients) {
     }
     
     for i in to_remove.into_iter().rev() {
-        clients_lock.remove(i);
+        let _ = clients_lock.remove(i);
     }
 }

@@ -14,7 +14,8 @@
       {
         "title": "LeClasseur-Updater",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "alwaysOnTop": true
       }
     ],
     "security": {
@@ -24,6 +25,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -31,5 +33,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhEQUI3MDg3QkZEQTk5MDMKUldRRG1kcS9oM0NyalpLSjc3S0VrM0FQeXZFYU9lbVNOQWNVQzFKaWhOU1M4RTJWdWcrd0RicmEK",
+      "endpoints": [
+        "https://github.com/mussonking/LC-updater/releases/latest/download/update.json"
+      ],
+      "dangerousInsecureTransportProtocol": true
+    }
   }
 }
