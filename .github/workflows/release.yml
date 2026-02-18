@@ -205,14 +205,15 @@ jobs:
 
       # Optional: Deploy update.json to your server
       - name: Deploy update.json to server
-        if: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+        if: env.DEPLOY_SSH_KEY != ''
         env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key update.json "${DEPLOY_HOST}:${DEPLOY_PATH}/update.json"
           echo "✅ Deployed update.json to server"
+
