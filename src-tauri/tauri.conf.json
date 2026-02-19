@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "LeClasseur-Updater",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "identifier": "com.leclasseur.updater",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -36,7 +36,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY2NERCMEVDRDIxOUU1NUIKUldSYjVSblM3TEJOOWdRRUhCb3FaVkQ5MHEyLzA4TWFWeUpKRkdLUEhKR2lISUEyNEdmSFprODMK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxRkQ0MEJDMThFRkY2NDQKUldSRTl1OFl2RUQ5TVlXN253RFRiYjFNSXN2SnluK0dUTjhjSi9wR2NyWWZ6ckJQcWplUUVHcFQK",
       "endpoints": [
         "https://github.com/mussonking/LC-updater/releases/latest/download/update.json"
       ],
