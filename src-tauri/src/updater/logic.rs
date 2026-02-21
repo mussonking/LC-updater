@@ -17,6 +17,11 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
         .map_err(|e| e.to_string())?;
         
     let zip_res = client.get(&manifest.download_url).send().await.map_err(|e| e.to_string())?;
+    
+    if !zip_res.status().is_success() {
+        return Err(format!("Erreur de téléchargement: HTTP {}. L'URL de l'archive ZIP ({}) ne retourne pas de fichier valide.", zip_res.status(), manifest.download_url));
+    }
+    
     let bytes = zip_res.bytes().await.map_err(|e| e.to_string())?;
     
     let reader = std::io::Cursor::new(bytes);
