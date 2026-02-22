@@ -65,6 +65,11 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 updater::ws_server::start_ws_server(clients_clone).await;
             });
+
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                updater::trigger_server::start_trigger_server(app_handle).await;
+            });
             
             Ok(())
         })

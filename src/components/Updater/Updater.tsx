@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, CheckCircle, Copy, ExternalLink, Info, Power, ChevronLeft } from 'lucide-react';
@@ -13,10 +14,10 @@ const Updater: React.FC = () => {
 
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
-    const [modalContent, setModalContent] = useState({ title: '', message: '' });
+    const [modalContent, setModalContent] = useState({ title: '', message: '', image: '' });
 
-    const showModal = (title: string, message: string) => {
-        setModalContent({ title, message });
+    const showModal = (title: string, message: string, image: string = '') => {
+        setModalContent({ title, message, image });
         setModalOpen(true);
     };
 
@@ -60,13 +61,38 @@ const Updater: React.FC = () => {
             }
         }, 10 * 60 * 1000);
 
-        return () => clearInterval(interval);
+        let unlistenFn: (() => void) | undefined;
+        const setupListener = async () => {
+            unlistenFn = await listen('trigger-manual-update', async () => {
+                console.log("[Updater] Received trigger-manual-update");
+                setIsLoading(true);
+                try {
+                    await invoke('check_and_update', {
+                        manifestUrl: import.meta.env.VITE_MANIFEST_URL
+                    });
+                } catch (err) {
+                    console.error("[Updater] Manual update error:", err);
+                } finally {
+                    setIsLoading(false);
+                }
+            });
+        };
+        setupListener();
+
+        return () => {
+            clearInterval(interval);
+            if (unlistenFn) unlistenFn();
+        };
     }, []);
 
     const copyPath = async () => {
         try {
             await writeText(installPath);
-            showModal("Succès", "Le chemin a été copié dans votre presse-papier.");
+            showModal(
+                "Chemin copié !",
+                "1. Cliquez dans la barre d'adresse en HAUT de la fenêtre qui vient de s'ouvrir.\n2. Collez (Ctrl+V) le chemin et appuyez sur Entrée.\n3. Cliquez sur le bouton 'Sélectionner un dossier' en BAS.",
+                "/tutorial_paste_path2.png"
+            );
         } catch (err) {
             console.error("Copy failed", err);
             showModal("Erreur", "Impossible de copier le chemin.");
@@ -245,6 +271,11 @@ const Updater: React.FC = () => {
                                 {modalContent.message.split('\n').map((line, i) => (
                                     <p key={i}>{line}</p>
                                 ))}
+                                {modalContent.image && (
+                                    <div className="tutorial-img-placeholder contain-img" style={{ marginTop: '15px' }}>
+                                        <img src={modalContent.image} alt="Tutoriel" />
+                                    </div>
+                                )}
                             </div>
                             <button className="primary-btn" onClick={() => setModalOpen(false)}>
                                 Compris

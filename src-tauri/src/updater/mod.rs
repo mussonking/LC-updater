@@ -1,6 +1,7 @@
-pub mod logic;
-pub mod ws_server;
 pub mod commands;
+pub mod logic;
+pub mod trigger_server;
+pub mod ws_server;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
