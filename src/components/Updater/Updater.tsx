@@ -60,6 +60,7 @@ const Updater: React.FC = () => {
 
         const init = async () => {
             setIsLoading(true);
+            setError('');
             try {
                 // 0. Set App Version
                 const v = await getVersion();
@@ -76,8 +77,9 @@ const Updater: React.FC = () => {
                 if (localExtVersion) setExtVersion(localExtVersion);
 
                 // 2. Trigger initial check/download for the extension
+                const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
                 await invoke('check_and_update', {
-                    manifestUrl: import.meta.env.VITE_MANIFEST_URL
+                    manifestUrl: cbManifest
                 });
 
                 // Update extension version again after potential download
@@ -98,8 +100,9 @@ const Updater: React.FC = () => {
         const interval = setInterval(async () => {
             try {
                 await checkAppUpdate();
+                const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
                 await invoke('check_and_update', {
-                    manifestUrl: import.meta.env.VITE_MANIFEST_URL
+                    manifestUrl: cbManifest
                 });
                 const newExtVersion = await invoke<string>('get_local_version_command');
                 if (newExtVersion) setExtVersion(newExtVersion);
@@ -114,14 +117,18 @@ const Updater: React.FC = () => {
             unlistenFn = await listen('trigger-manual-update', async () => {
                 console.log("[Updater] Received trigger-manual-update");
                 setIsLoading(true);
+                setError('');
                 try {
+                    const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
                     await invoke('check_and_update', {
-                        manifestUrl: import.meta.env.VITE_MANIFEST_URL
+                        manifestUrl: cbManifest
                     });
                     const newExtVersion = await invoke<string>('get_local_version_command');
                     if (newExtVersion) setExtVersion(newExtVersion);
-                } catch (err) {
+                } catch (err: any) {
                     console.error("[Updater] Manual update error:", err);
+                    const msg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+                    setError(`Erreur: ${msg}`);
                 } finally {
                     setLastCheck(new Date());
                     setIsLoading(false);
@@ -138,9 +145,11 @@ const Updater: React.FC = () => {
 
     const handleManualCheck = async () => {
         setIsLoading(true);
+        setError('');
         try {
+            const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
             await invoke('check_and_update', {
-                manifestUrl: import.meta.env.VITE_MANIFEST_URL
+                manifestUrl: cbManifest
             });
             const newExtVersion = await invoke<string>('get_local_version_command');
             if (newExtVersion) setExtVersion(newExtVersion);
@@ -157,8 +166,10 @@ const Updater: React.FC = () => {
             } catch (e) {
                 console.error("Failed to check for app updates:", e);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("[Updater] Manual check error:", err);
+            const msg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+            setError(`Erreur: ${msg}`);
         } finally {
             setIsLoading(false);
         }

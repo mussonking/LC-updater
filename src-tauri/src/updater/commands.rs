@@ -33,25 +33,52 @@ pub async fn open_chrome_extensions() -> Result<(), String> {
 
 #[tauri::command]
 pub async fn check_and_update(app: AppHandle, state: tauri::State<'_, AppState>, manifest_url: &str) -> Result<bool, String> {
+    println!("[Updater] check_and_update triggered for URL: {}", manifest_url);
+
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            println!("[Updater] Error building HTTP client: {}", e);
+            e.to_string()
+        })?;
         
-    let res = client.get(manifest_url).send().await.map_err(|e| e.to_string())?;
-    let manifest: logic::UpdateManifest = res.json().await.map_err(|e| e.to_string())?;
+    println!("[Updater] Fetching manifest...");
+    let res = client.get(manifest_url).send().await.map_err(|e| {
+        println!("[Updater] Error fetching manifest: {}", e);
+        e.to_string()
+    })?;
+    
+    println!("[Updater] Parsing manifest JSON...");
+    let manifest: logic::UpdateManifest = res.json().await.map_err(|e| {
+        println!("[Updater] Error parsing manifest JSON: {}", e);
+        e.to_string()
+    })?;
+    println!("[Updater] Remote manifest version: {} (Download URL: {})", manifest.version, manifest.download_url);
     
     let app_dir = app.path().local_data_dir().map_err(|e| e.to_string())?.join("LeClasseurExtension");
     let current_version = logic::get_local_version(&app_dir);
+    println!("[Updater] Local extension version: {}", current_version);
     
     let remote_ver = manifest.version.trim();
     let local_ver = current_version.trim();
+    println!("[Updater] Comparing exactly: Remote='{}' vs Local='{}'", remote_ver, local_ver);
     
     if remote_ver != local_ver {
-        logic::download_and_install(app_dir, manifest).await?;
-        ws_server::broadcast_reload(&state.clients).await;
-        Ok(true)
+        println!("[Updater] Version mismatch detected! Starting download and install...");
+        match logic::download_and_install(app_dir.clone(), manifest).await {
+            Ok(_) => {
+                println!("[Updater] Download and install successful! Broadcasting reload event.");
+                ws_server::broadcast_reload(&state.clients).await;
+                Ok(true)
+            },
+            Err(e) => {
+                println!("[Updater] ERROR during download/install: {}", e);
+                Err(e)
+            }
+        }
     } else {
+        println!("[Updater] Versions match, no update needed.");
         Ok(false)
     }
 }

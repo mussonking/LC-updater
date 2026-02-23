@@ -11,30 +11,63 @@ pub struct UpdateManifest {
 }
 
 pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) -> Result<(), String> {
+    println!("[Logic] Building reqwest client for download...");
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true) // Allow self-signed/dev certificates just in case
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            println!("[Logic] Error building client: {}", e);
+            e.to_string()
+        })?;
         
-    let zip_res = client.get(&manifest.download_url).send().await.map_err(|e| e.to_string())?;
+    let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+    let download_url = if manifest.download_url.contains('?') {
+        format!("{}&cb={}", manifest.download_url, ts)
+    } else {
+        format!("{}?cb={}", manifest.download_url, ts)
+    };
     
-    if !zip_res.status().is_success() {
-        return Err(format!("Erreur de téléchargement: HTTP {}. L'URL de l'archive ZIP ({}) ne retourne pas de fichier valide.", zip_res.status(), manifest.download_url));
+    println!("[Logic] Sending GET request to {}...", download_url);
+    let zip_res = client.get(&download_url).send().await.map_err(|e| {
+        println!("[Logic] Request failed: {}", e);
+        e.to_string()
+    })?;
+    
+    let status = zip_res.status();
+    println!("[Logic] HTTP Status for zip download: {}", status);
+    if !status.is_success() {
+        return Err(format!("Erreur de téléchargement: HTTP {}. L'URL de l'archive ZIP ({}) ne retourne pas de fichier valide.", status, manifest.download_url));
     }
     
-    let bytes = zip_res.bytes().await.map_err(|e| e.to_string())?;
+    println!("[Logic] Reading bytes from response...");
+    let bytes = zip_res.bytes().await.map_err(|e| {
+        println!("[Logic] Error reading bytes: {}", e);
+        e.to_string()
+    })?;
+    println!("[Logic] Downloaded {} bytes of zip archive.", bytes.len());
     
     let reader = std::io::Cursor::new(bytes);
-    let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(reader).map_err(|e| {
+        println!("[Logic] ZipArchive decode error: {}", e);
+        e.to_string()
+    })?;
     
+    println!("[Logic] Zip archive contains {} files. Extracting to {:?}...", archive.len(), app_dir);
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let mut file = archive.by_index(i).map_err(|e| {
+             println!("[Logic] Error reading file index {}: {}", i, e);
+             e.to_string()
+        })?;
         let outpath = match file.enclosed_name() {
             Some(path) => app_dir.join(path),
-            None => continue,
+            None => {
+                println!("[Logic] Skipping file at index {} due to unsafe enclosed name", i);
+                continue;
+            }
         };
         
         if file.name().ends_with('/') {
+            // println!("[Logic] Creating directory: {:?}", outpath);
             fs::create_dir_all(&outpath).map_err(|e| e.to_string())?;
         } else {
             if let Some(p) = outpath.parent() {
@@ -42,14 +75,26 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
                     fs::create_dir_all(&p).map_err(|e| e.to_string())?;
                 }
             }
-            let mut outfile = fs::File::create(&outpath).map_err(|e| e.to_string())?;
-            std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
+            // println!("[Logic] Extracting file: {:?}", outpath);
+            let mut outfile = fs::File::create(&outpath).map_err(|e| {
+                println!("[Logic] Failed to create extracted file {:?}: {}", outpath, e);
+                e.to_string()
+            })?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| {
+                println!("[Logic] Failed to write extracted file {:?}: {}", outpath, e);
+                e.to_string()
+            })?;
         }
     }
     
     let version_file = app_dir.join("version.txt");
-    fs::write(version_file, &manifest.version).map_err(|e| e.to_string())?;
+    println!("[Logic] Writing version {} to {:?}", manifest.version, version_file);
+    fs::write(&version_file, &manifest.version).map_err(|e| {
+        println!("[Logic] Error writing version file: {}", e);
+        e.to_string()
+    })?;
     
+    println!("[Logic] Extracted {} files successfully!", archive.len());
     Ok(())
 }
 
