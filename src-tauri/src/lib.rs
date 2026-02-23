@@ -21,7 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec![])))
         .setup(|app| {
             // Enable auto-start automatically
-            let _ = app.autostart().enable();
+            let _ = app.autolaunch().enable();
 
             // --- Auto-Update Plugin ---
             #[cfg(desktop)]
