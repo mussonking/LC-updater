@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
+import { check } from '@tauri-apps/plugin-updater';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { RefreshCw, CheckCircle, Copy, ExternalLink, Info, Power, ChevronLeft, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, CheckCircle, Copy, ExternalLink, Info, Power, ChevronLeft } from 'lucide-react';
 import './Updater.css';
 
 const Updater: React.FC = () => {
     const [installPath, setInstallPath] = useState('');
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(() => {
+        const saved = localStorage.getItem('leclasseur_setup_completed');
+        return saved === 'true' ? 4 : 1;
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [appVersion, setAppVersion] = useState('');
+    const [extVersion, setExtVersion] = useState('...');
+    const [lastCheck, setLastCheck] = useState<Date>(new Date());
 
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
@@ -26,26 +34,62 @@ const Updater: React.FC = () => {
     };
 
     const prevStep = () => {
-        if (step > 1) setStep(step - 1);
+        if (step > 1 && step < 4) setStep(step - 1);
+    };
+
+    const nextStep = (next: number) => {
+        setStep(next);
+        if (next === 4) {
+            localStorage.setItem('leclasseur_setup_completed', 'true');
+        }
     };
 
     useEffect(() => {
+        const checkAppUpdate = async () => {
+            try {
+                const update = await check();
+                if (update) {
+                    console.log("[Updater] Found app update, installing...");
+                    await update.downloadAndInstall();
+                    await invoke('quit_app');
+                }
+            } catch (e) {
+                console.error("Failed to check for app updates:", e);
+            }
+        };
+
         const init = async () => {
             setIsLoading(true);
             try {
-                // 1. Get path
+                // 0. Set App Version
+                const v = await getVersion();
+                setAppVersion(v);
+
+                // 0.5 Check for Updater App Updates
+                await checkAppUpdate();
+
+                // 1. Get path & local extension version
                 const path = await invoke<string>('get_install_path');
                 setInstallPath(path);
 
-                // 2. Trigger initial check/download
+                const localExtVersion = await invoke<string>('get_local_version_command');
+                if (localExtVersion) setExtVersion(localExtVersion);
+
+                // 2. Trigger initial check/download for the extension
                 await invoke('check_and_update', {
                     manifestUrl: import.meta.env.VITE_MANIFEST_URL
                 });
+
+                // Update extension version again after potential download
+                const newExtVersion = await invoke<string>('get_local_version_command');
+                if (newExtVersion) setExtVersion(newExtVersion);
+
             } catch (err: any) {
                 console.error("[Updater] Init error:", err);
                 const msg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
                 setError(`Erreur: ${msg}`);
             } finally {
+                setLastCheck(new Date());
                 setIsLoading(false);
             }
         };
@@ -53,9 +97,13 @@ const Updater: React.FC = () => {
 
         const interval = setInterval(async () => {
             try {
+                await checkAppUpdate();
                 await invoke('check_and_update', {
                     manifestUrl: import.meta.env.VITE_MANIFEST_URL
                 });
+                const newExtVersion = await invoke<string>('get_local_version_command');
+                if (newExtVersion) setExtVersion(newExtVersion);
+                setLastCheck(new Date());
             } catch (err) {
                 console.error("[Updater] Polling error:", err);
             }
@@ -70,9 +118,12 @@ const Updater: React.FC = () => {
                     await invoke('check_and_update', {
                         manifestUrl: import.meta.env.VITE_MANIFEST_URL
                     });
+                    const newExtVersion = await invoke<string>('get_local_version_command');
+                    if (newExtVersion) setExtVersion(newExtVersion);
                 } catch (err) {
                     console.error("[Updater] Manual update error:", err);
                 } finally {
+                    setLastCheck(new Date());
                     setIsLoading(false);
                 }
             });
@@ -84,6 +135,34 @@ const Updater: React.FC = () => {
             if (unlistenFn) unlistenFn();
         };
     }, []);
+
+    const handleManualCheck = async () => {
+        setIsLoading(true);
+        try {
+            await invoke('check_and_update', {
+                manifestUrl: import.meta.env.VITE_MANIFEST_URL
+            });
+            const newExtVersion = await invoke<string>('get_local_version_command');
+            if (newExtVersion) setExtVersion(newExtVersion);
+            setLastCheck(new Date());
+
+            // 0.5 Check for Updater App Updates manuellement aussi
+            try {
+                const update = await check();
+                if (update) {
+                    console.log("[Updater] Found app update, installing...");
+                    await update.downloadAndInstall();
+                    await invoke('quit_app');
+                }
+            } catch (e) {
+                console.error("Failed to check for app updates:", e);
+            }
+        } catch (err) {
+            console.error("[Updater] Manual check error:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const copyPath = async () => {
         try {
@@ -128,7 +207,7 @@ const Updater: React.FC = () => {
                 </button>
                 <img src="/tauri.svg" alt="LeClasseur" className="app-icon" />
                 <h1>LeClasseur Extension</h1>
-                <div className="version-badge">v3.3.0</div>
+                <div className="version-badge">v{appVersion || "..."}</div>
             </header>
 
             <AnimatePresence mode="wait">
@@ -162,7 +241,7 @@ const Updater: React.FC = () => {
                                     <code>{installPath}</code>
                                 </div>
 
-                                <button className="primary-btn" onClick={() => setStep(2)}>
+                                <button className="primary-btn" onClick={() => nextStep(2)}>
                                     Continuer <ExternalLink size={18} />
                                 </button>
                             </>
@@ -195,7 +274,7 @@ const Updater: React.FC = () => {
 
                         <div className="divider"></div>
 
-                        <button className="primary-btn" onClick={() => setStep(3)}>
+                        <button className="primary-btn" onClick={() => nextStep(3)}>
                             C'est fait, étape suivante
                         </button>
                     </motion.div>
@@ -229,7 +308,7 @@ const Updater: React.FC = () => {
                             <img src="/tutorial_load_unpacked.png" alt="Guide Load Unpacked" />
                         </div>
 
-                        <button className="primary-btn" onClick={() => setStep(4)}>Terminer l'installation</button>
+                        <button className="primary-btn" onClick={() => nextStep(4)}>Terminer l'installation</button>
                     </motion.div>
                 )}
 
@@ -241,11 +320,20 @@ const Updater: React.FC = () => {
                         className="status-card success"
                     >
                         <CheckCircle size={64} color="#10b981" />
-                        <h2>Extension Connectée</h2>
+                        <h2>Extension v{extVersion} Connectée</h2>
                         <p>L'updater surveille maintenant les mises à jour en arrière-plan.</p>
                         <div className="polling-indicator">
-                            <RefreshCw size={16} className="spin" /> Vérification toutes les 10 min
+                            Dernière vérification: {lastCheck.toLocaleTimeString()}
                         </div>
+                        <button
+                            className="secondary-btn"
+                            style={{ marginTop: '15px' }}
+                            onClick={handleManualCheck}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <RefreshCw size={18} className="spin" /> : <Download size={18} />}
+                            Vérifier maintenant
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>

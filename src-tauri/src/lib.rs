@@ -82,6 +82,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             updater::commands::get_install_path, 
+            updater::commands::get_local_version_command,
             updater::commands::open_chrome_extensions, 
             updater::commands::check_and_update,
             updater::commands::trigger_manual_reload,

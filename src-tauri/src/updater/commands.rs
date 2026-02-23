@@ -54,6 +54,14 @@ pub async fn check_and_update(app: AppHandle, state: tauri::State<'_, AppState>,
 }
 
 #[tauri::command]
+pub async fn get_local_version_command(app: AppHandle) -> Result<String, String> {
+    let app_dir = app.path().local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("LeClasseurExtension");
+    Ok(logic::get_local_version(&app_dir))
+}
+
+#[tauri::command]
 pub async fn trigger_manual_reload(state: tauri::State<'_, AppState>) -> Result<(), String> {
     ws_server::broadcast_reload(&state.clients).await;
     Ok(())
