@@ -44,7 +44,10 @@ pub async fn check_and_update(app: AppHandle, state: tauri::State<'_, AppState>,
     let app_dir = app.path().local_data_dir().map_err(|e| e.to_string())?.join("LeClasseurExtension");
     let current_version = logic::get_local_version(&app_dir);
     
-    if manifest.version != current_version {
+    let remote_ver = manifest.version.trim();
+    let local_ver = current_version.trim();
+    
+    if remote_ver != local_ver {
         logic::download_and_install(app_dir, manifest).await?;
         ws_server::broadcast_reload(&state.clients).await;
         Ok(true)

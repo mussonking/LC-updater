@@ -56,7 +56,7 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
 pub fn get_local_version(app_dir: &PathBuf) -> String {
     let version_file = app_dir.join("version.txt");
     if version_file.exists() {
-        fs::read_to_string(&version_file).unwrap_or_default()
+        fs::read_to_string(&version_file).unwrap_or_default().trim().to_string()
     } else {
         String::new()
     }
