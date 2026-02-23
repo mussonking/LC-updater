@@ -52,14 +52,23 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
         e.to_string()
     })?;
     
-    println!("[Logic] Zip archive contains {} files. Extracting to {:?}...", archive.len(), app_dir);
+    let tmp_app_dir = app_dir.with_extension("tmp_update");
+    if tmp_app_dir.exists() {
+        let _ = fs::remove_dir_all(&tmp_app_dir);
+    }
+    fs::create_dir_all(&tmp_app_dir).map_err(|e| {
+        println!("[Logic] Error creating tmp dir: {}", e);
+        e.to_string()
+    })?;
+
+    println!("[Logic] Zip archive contains {} files. Extracting to {:?}...", archive.len(), tmp_app_dir);
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| {
              println!("[Logic] Error reading file index {}: {}", i, e);
              e.to_string()
         })?;
         let outpath = match file.enclosed_name() {
-            Some(path) => app_dir.join(path),
+            Some(path) => tmp_app_dir.join(path),
             None => {
                 println!("[Logic] Skipping file at index {} due to unsafe enclosed name", i);
                 continue;
@@ -87,6 +96,27 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
         }
     }
     
+    println!("[Logic] Extraction to tmp dir successful. Swapping directories...");
+    
+    // Attempt to move the old active directory out of the way
+    let old_app_dir = app_dir.with_extension("old");
+    if old_app_dir.exists() {
+        let _ = fs::remove_dir_all(&old_app_dir); // Best effort cleanup
+    }
+    
+    if app_dir.exists() {
+        fs::rename(&app_dir, &old_app_dir).map_err(|e| {
+            println!("[Logic] Error renaming active app_dir to old: {}", e);
+            format!("Failed to move old version: {}", e)
+        })?;
+    }
+    
+    // Rename the new tmp directory to the active directory
+    fs::rename(&tmp_app_dir, &app_dir).map_err(|e| {
+        println!("[Logic] Error renaming tmp app_dir to active: {}", e);
+        format!("Failed to apply new version: {}", e)
+    })?;
+    
     let version_file = app_dir.join("version.txt");
     println!("[Logic] Writing version {} to {:?}", manifest.version, version_file);
     fs::write(&version_file, &manifest.version).map_err(|e| {
@@ -94,7 +124,7 @@ pub async fn download_and_install(app_dir: PathBuf, manifest: UpdateManifest) ->
         e.to_string()
     })?;
     
-    println!("[Logic] Extracted {} files successfully!", archive.len());
+    println!("[Logic] Extracted {} files successfully and swapped active directory!", archive.len());
     Ok(())
 }
 
