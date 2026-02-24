@@ -67,8 +67,9 @@ pub fn run() {
             let state = app.state::<AppState>();
             let clients_clone = Arc::clone(&state.clients);
             
+            let app_for_ws = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                updater::ws_server::start_ws_server(clients_clone).await;
+                updater::ws_server::start_ws_server(app_for_ws, clients_clone).await;
             });
 
             let app_handle = app.handle().clone();

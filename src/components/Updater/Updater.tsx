@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
@@ -19,6 +19,7 @@ const Updater: React.FC = () => {
     const [appVersion, setAppVersion] = useState('');
     const [extVersion, setExtVersion] = useState('...');
     const [lastCheck, setLastCheck] = useState<Date>(new Date());
+    const pendingReloadRef = useRef(false);
 
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
@@ -120,9 +121,16 @@ const Updater: React.FC = () => {
                 setError('');
                 try {
                     const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
-                    await invoke('check_and_update', {
+                    const updated = await invoke<boolean>('check_and_update', {
                         manifestUrl: cbManifest
                     });
+
+                    // Always try to ask for an extension reload
+                    pendingReloadRef.current = true;
+                    if (!updated) {
+                        console.log("[Updater] No update needed, forcing dev reload broadcast");
+                        await invoke('trigger_manual_reload');
+                    }
                     const newExtVersion = await invoke<string>('get_local_version_command');
                     if (newExtVersion) setExtVersion(newExtVersion);
                 } catch (err: any) {
@@ -137,9 +145,35 @@ const Updater: React.FC = () => {
         };
         setupListener();
 
+        let unlistenExtensionFn: (() => void) | undefined;
+        const setupExtensionListener = async () => {
+            unlistenExtensionFn = await listen('extension-message', (event) => {
+                console.log("[Updater] Received extension-message:", event.payload);
+                const payload = event.payload as any;
+                if (payload && payload.action === "HELLO") {
+                    pendingReloadRef.current = false; // Successfully connected!
+                    showModal(
+                        "✅ Rechargement réussi !",
+                        `L'extension Chrome v${payload.version} s'est connectée avec succès au Updater.`
+                    );
+                }
+            });
+        };
+        setupExtensionListener();
+
+        // Retry loop for the reload signal
+        const retryInterval = setInterval(() => {
+            if (pendingReloadRef.current) {
+                console.log("[Updater] Retrying RELOAD broadcast...");
+                invoke('trigger_manual_reload').catch(console.error);
+            }
+        }, 5000);
+
         return () => {
             clearInterval(interval);
+            clearInterval(retryInterval);
             if (unlistenFn) unlistenFn();
+            if (unlistenExtensionFn) unlistenExtensionFn();
         };
     }, []);
 
@@ -148,9 +182,15 @@ const Updater: React.FC = () => {
         setError('');
         try {
             const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
-            await invoke('check_and_update', {
+            const updated = await invoke<boolean>('check_and_update', {
                 manifestUrl: cbManifest
             });
+
+            pendingReloadRef.current = true;
+            if (!updated) {
+                console.log("[Updater] No update needed, forcing dev reload broadcast");
+                await invoke('trigger_manual_reload');
+            }
             const newExtVersion = await invoke<string>('get_local_version_command');
             if (newExtVersion) setExtVersion(newExtVersion);
             setLastCheck(new Date());

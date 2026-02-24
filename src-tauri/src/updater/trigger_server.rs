@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -23,6 +23,9 @@ pub async fn start_trigger_server(app: AppHandle) {
                     // Accept GET /trigger-update or POST /trigger-update
                     if request.contains(" /trigger-update ") {
                         let _ = app_handle.emit("trigger-manual-update", ());
+                        
+                        let state = app_handle.state::<crate::updater::AppState>();
+                        crate::updater::ws_server::broadcast_reload(&state.clients).await;
                         
                         let response = "HTTP/1.1 200 OK\r\n\
                                         Content-Type: application/json\r\n\
