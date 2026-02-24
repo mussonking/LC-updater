@@ -20,7 +20,7 @@ on:
 
 env:
   APP_NAME: LeClasseur-Updater
-  BASE_URL: https://dev.leclasseur.ca
+  BASE_URL: https://dl.leclasseur.ca
 
 jobs:
   build:
@@ -66,7 +66,7 @@ jobs:
       # Create .env file from the BASE_URL env var
       - name: Create .env
         run: |
-          echo "VITE_MANIFEST_URL=${{ env.BASE_URL }}/static/extension/version.json" > .env
+          echo "VITE_MANIFEST_URL=${{ env.BASE_URL }}/extension/version.json" > .env
           echo "VITE_BASE_URL=${{ env.BASE_URL }}" >> .env
 
       # Build for Windows
