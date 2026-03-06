@@ -215,6 +215,42 @@ const Updater: React.FC = () => {
         }
     };
 
+    const handleReinstall = async () => {
+        const confirmReinstall = window.confirm("Êtes-vous sûr de vouloir réinstaller l'extension complètement ? Cela effacera la version actuelle de votre ordinateur.");
+        if (!confirmReinstall) return;
+
+        setIsLoading(true);
+        setError('');
+        try {
+            console.log("[Updater] Calling force_reinstall cmd");
+            await invoke('force_reinstall');
+
+            // Clear local storage flag so next time it starts at step 1 if closed
+            localStorage.removeItem('leclasseur_setup_completed');
+
+            // Reset state
+            setExtVersion('...');
+            setStep(1);
+
+            // Trigger redownload immediately
+            const cbManifest = import.meta.env.VITE_MANIFEST_URL + "?cb=" + Date.now();
+            await invoke('check_and_update', {
+                manifestUrl: cbManifest
+            });
+
+            const newExtVersion = await invoke<string>('get_local_version_command');
+            if (newExtVersion) setExtVersion(newExtVersion);
+
+        } catch (err: any) {
+            console.error("[Updater] Reinstall error:", err);
+            const msg = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+            setError(`Erreur lors de la réinstallation: ${msg}`);
+            // Stay on current step to show error
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const copyPath = async () => {
         try {
             await writeText(installPath);
@@ -384,6 +420,16 @@ const Updater: React.FC = () => {
                         >
                             {isLoading ? <RefreshCw size={18} className="spin" /> : <Download size={18} />}
                             Vérifier maintenant
+                        </button>
+
+                        <button
+                            className="danger-btn"
+                            style={{ marginTop: '10px', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.5rem 1rem', borderRadius: '0.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', width: '100%' }}
+                            onClick={handleReinstall}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <RefreshCw size={18} className="spin" /> : <RefreshCw size={18} />}
+                            Réinstaller l'extension
                         </button>
                     </motion.div>
                 )}

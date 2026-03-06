@@ -92,7 +92,8 @@ pub fn run() {
             updater::commands::open_chrome_extensions, 
             updater::commands::check_and_update,
             updater::commands::trigger_manual_reload,
-            updater::commands::quit_app
+            updater::commands::quit_app,
+            updater::commands::force_reinstall
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

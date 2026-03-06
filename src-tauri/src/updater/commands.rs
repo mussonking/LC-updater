@@ -101,3 +101,18 @@ pub async fn trigger_manual_reload(state: tauri::State<'_, AppState>) -> Result<
 pub async fn quit_app(app: AppHandle) {
     app.exit(0);
 }
+
+#[tauri::command]
+pub async fn force_reinstall(app: AppHandle) -> Result<(), String> {
+    println!("[Updater] force_reinstall triggered");
+    let app_dir = app.path().local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("LeClasseurExtension");
+    
+    if app_dir.exists() {
+        println!("[Updater] Removing extension directory: {:?}", app_dir);
+        fs::remove_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
